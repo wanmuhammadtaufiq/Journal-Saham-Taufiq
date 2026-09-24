@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="ms" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JOURNAL SAHAM - Journal Saham Taufiq (Soft UI)</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        neu: {
+                            base: '#e0e5ec',
+                            dark: '#1e2430',
+                            accent: '#3b82f6'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Alpine.js untuk interaktiviti reaktif -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Chart.js untuk Carta Dashboard -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #e0e5ec;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .dark body {
+            background-color: #1e2430;
+        }
+
+        /* Neumorphism Flat Card */
+        .neu-flat {
+            background: #e0e5ec;
+            box-shadow: 8px 8px 16px #b8bec5, -8px -8px 16px #ffffff;
+            border-radius: 1.25rem;
+        }
+        .dark .neu-flat {
+            background: #1e2430;
+            box-shadow: 8px 8px 18px #13171f, -8px -8px 18px #293141;
+            border-radius: 1.25rem;
+        }
+
+        /* Neumorphism Inset / Concave (Inputs & Pressed States) */
+        .neu-inset {
+            background: #e0e5ec;
+            box-shadow: inset 4px 4px 8px #b8bec5, inset -4px -4px 8px #ffffff;
+            border-radius: 0.85rem;
+        }
+        .dark .neu-inset {
+            background: #1e2430;
+            box-shadow: inset 4px 4px 8px #13171f, inset -4px -4px 8px #293141;
+            border-radius: 0.85rem;
+        }
+
+        /* Neumorphism Button Base */
+        .neu-btn {
+            background: #e0e5ec;
+            box-shadow: 5px 5px 10px #b8bec5, -5px -5px 10px #ffffff;
+            border-radius: 0.85rem;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .neu-btn:hover {
+            box-shadow: 2px 2px 5px #b8bec5, -2px -2px 5px #ffffff;
+            transform: translateY(1px);
+        }
+        .neu-btn:active, .neu-btn-active {
+            background: #e0e5ec;
+            box-shadow: inset 4px 4px 8px #b8bec5, inset -4px -4px 8px #ffffff !important;
+            transform: translateY(0);
+        }
+
+        .dark .neu-btn {
+            background: #1e2430;
+            box-shadow: 5px 5px 12px #13171f, -5px -5px 12px #293141;
+            border-radius: 0.85rem;
+        }
+        .dark .neu-btn:hover {
+            box-shadow: 2px 2px 6px #13171f, -2px -2px 6px #293141;
+        }
+        .dark .neu-btn:active, .dark .neu-btn-active {
+            background: #1e2430;
+            box-shadow: inset 4px 4px 8px #13171f, inset -4px -4px 8px #293141 !important;
+        }
+
+        /* Neumorphism Accent Button */
+        .neu-btn-primary {
+            background: linear-gradient(145deg, #3b82f6, #2563eb);
+            box-shadow: 5px 5px 12px #b8bec5, -5px -5px 12px #ffffff;
+            color: #ffffff;
+            border-radius: 0.85rem;
+            transition: all 0.2s ease;
+        }
+        .neu-btn-primary:hover {
+            box-shadow: 2px 2px 6px #b8bec5, -2px -2px 6px #ffffff;
+        }
+        .dark .neu-btn-primary {
+            box-shadow: 5px 5px 12px #13171f, -5px -5px 12px #293141;
+        }
+
+        /* Custom Scrollbar for Soft UI */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e0e5ec;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #1e2430;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #b8bec5;
+            border-radius: 10px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #293141;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="text-gray-700 dark:text-gray-200 min-h-screen transition-colors duration-300" 
+      x-data="stockJournalApp()" 
+      x-init="initApp()">
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div class="fixed top-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none" x-cloak>
+        <template x-if="toast.show">
+            <div class="pointer-events-auto neu-flat p-4 flex items-center justify-between shadow-xl transition-all duration-300 border-l-4"
+                 :class="{
+                    'border-blue-500 text-blue-600 dark:text-blue-400': toast.type === 'info',
+                    'border-emerald-500 text-emerald-600 dark:text-emerald-400': toast.type === 'success',
+                    'border-rose-500 text-rose-600 dark:text-rose-400': toast.type === 'error'
+                 }">
+                <div class="flex items-center space-x-3">
+                    <span x-show="toast.type === 'info'" class="animate-spin text-lg">⏳</span>
+                    <span x-show="toast.type === 'success'" class="text-lg">✅</span>
+                    <span x-show="toast.type === 'error'" class="text-lg">⚠️</span>
+                    <p class="text-xs font-bold text-gray-800 dark:text-gray-100" x-text="toast.message"></p>
+                </div>
+                <button @click="toast.show = false" class="text-xs text-gray-400 hover:text-gray-600 ml-4 font-bold">✕</button>
+            </div>
+        </template>
+    </div>
+
+    <!-- MAIN APP LAYOUT -->
+    <div class="flex flex-col md:flex-row min-h-screen p-3 md:p-6 gap-6">
+        
+        <!-- SIDEBAR DESKTOP -->
+        <aside class="hidden md:flex flex-col w-64 neu-flat p-6 sticky top-6 h-[calc(100vh-3rem)] justify-between z-20">
+            <div>
+                <div class="mb-8 px-2">
+                    <h1 class="font-black text-xl tracking-wider text-blue-600 dark:text-blue-400 drop-shadow-sm">JOURNAL SAHAM</h1>
+                    <p class="text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-1">Selamat Datang Taufiq</p>
+                </div>
+
+                <nav class="space-y-3">
+                    <button @click="activeTab = 'dashboard'" 
+                            :class="activeTab === 'dashboard' ? 'neu-btn-active text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-600 dark:text-gray-300 hover:text-blue-600'"
+                            class="w-full neu-btn flex items-center space-x-3.5 px-4 py-3 text-sm transition-all text-left">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                        <span>Dashboard</span>
+                    </button>
+                    <button @click="activeTab = 'journal'" 
+                            :class="activeTab === 'journal' ? 'neu-btn-active text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-600 dark:text-gray-300 hover:text-blue-600'"
+                            class="w-full neu-btn flex items-center space-x-3.5 px-4 py-3 text-sm transition-all text-left">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                        <span>Journal</span>
+                    </button>
+                    <button @click="activeTab = 'money'" 
+                            :class="activeTab === 'money' ? 'neu-btn-active text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-600 dark:text-gray-300 hover:text-blue-600'"
+                            class="w-full neu-btn flex items-center space-x-3.5 px-4 py-3 text-sm transition-all text-left">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>Money Management</span>
+                    </button>
+                    <button @click="activeTab = 'settings'" 
+                            :class="activeTab === 'settings' ? 'neu-btn-active text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-600 dark:text-gray-300 hover:text-blue-600'"
+                            class="w-full neu-btn flex items-center space-x-3.5 px-4 py-3 text-sm transition-all text-left">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        <span>Settings</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Toggle Tema -->
+            <div class="pt-4">
+                <button @click="toggleTheme()" class="w-full neu-btn flex items-center justify-between px-4 py-3 text-xs font-semibold">
+                    <span x-text="darkMode ? 'Mod Gelap' : 'Mod Cerah'"></span>
+                    <span class="text-base" x-text="darkMode ? '🌙' : '☀️'"></span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- NAVIGASI MUDAH ALIH (BOTTOM NAV) -->
+        <nav class="md:hidden fixed bottom-3 left-3 right-3 neu-flat flex justify-around p-3 z-40">
+            <button @click="activeTab = 'dashboard'" :class="activeTab === 'dashboard' ? 'text-blue-600 dark:text-blue-400 font-bold neu-inset px-3 py-1.5' : 'text-gray-500'" class="flex flex-col items-center text-xs transition-all">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                Dashboard
+            </button>
+            <button @click="activeTab = 'journal'" :class="activeTab === 'journal' ? 'text-blue-600 dark:text-blue-400 font-bold neu-inset px-3 py-1.5' : 'text-gray-500'" class="flex flex-col items-center text-xs transition-all">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                Journal
+            </button>
+            <button @click="activeTab = 'money'" :class="activeTab === 'money' ? 'text-blue-600 dark:text-blue-400 font-bold neu-inset px-3 py-1.5' : 'text-gray-500'" class="flex flex-col items-center text-xs transition-all">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Kalkulator
+            </button>
+            <button @click="activeTab = 'settings'" :class="activeTab === 'settings' ? 'text-blue-600 dark:text-blue-400 font-bold neu-inset px-3 py-1.5' : 'text-gray-500'" class="flex flex-col items-center text-xs transition-all">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                Tetapan
+            </button>
+        </nav>
+
+        <!-- KANDUNGAN UTAMA (MAIN CONTENT AREA) -->
+        <main class="flex-1 pb-20 md:pb-6 max-w-7xl mx-auto w-full space-y-6">
+            
+            <!-- HEADER MOBILE DENGAN TOGGLE TEMA -->
+            <div class="flex md:hidden justify-between items-center p-4 neu-flat mb-4">
+                <h1 class="font-black text-base text-blue-600 dark:text-blue-400">JOURNAL SAHAM</h1>
+                <button @click="toggleTheme()" class="neu-btn px-3 py-1.5 text-xs font-semibold">
+                    <span x-text="darkMode ? '🌙 Gelap' : '☀️ Cerah'"></span>
+                </button>
+            </div>
+
+            <!-- ================= PAGE 1: DASHBOARD ================= -->
+            <div x-show="activeTab === 'dashboard'" class="space-y-6">
+                
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-2">
+                    <div>
+                        <h2 class="text-2xl font-black tracking-tight text-gray-800 dark:text-gray-100">Dashboard Prestasi</h2>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Ringkasan modal dan prestasi perdagangan Moomoo anda.</p>
+                    </div>
+                    
+                    <!-- FILTER MASA DEDIKASI -->
+                    <div class="flex flex-wrap items-center gap-3">
+                        <select x-model="selectedMonth" @change="updateDashboardFilter()" class="neu-inset text-xs rounded-xl px-3.5 py-2.5 text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer border-none">
+                            <option value="all">Semua Bulan</option>
+                            <option value="01">Januari</option>
+                            <option value="02">Februari</option>
+                            <option value="03">Mac</option>
+                            <option value="04">April</option>
+                            <option value="05">Mei</option>
+                            <option value="06">Jun</option>
+                            <option value="07">Julai</option>
+                            <option value="08">Ogos</option>
+                            <option value="09">September</option>
+                            <option value="10">Oktober</option>
+                            <option value="11">November</option>
+                            <option value="12">Disember</option>
+                        </select>
+
+                        <select x-model="selectedYear" @change="updateDashboardFilter()" class="neu-inset text-xs rounded-xl px-3.5 py-2.5 text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer border-none">
+                            <option value="all">Semua Tahun</option>
+                            <template x-for="yr in yearOptions" :key="yr">
+                                <option :value="yr.toString()" x-text="'Tahun ' + yr"></option>
+                            </template>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 5 KAD UTAMA DASHBOARD -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+                    <div class="neu-flat p-5">
+                        <p class="text-[11px] font-bold text-gray-400 tracking-wider">MODAL AWAL</p>
+                        <p class="text-xl font-extrabold mt-2 text-gray-800 dark:text-gray-100" x-text="formatMYR(settings.initialCapital)"></p>
+                        <p class="text-[10px] text-gray-400 mt-1">Misi beranakkan duit</p>
+                    </div>
+
+                    <div class="neu-flat p-5">
+                        <p class="text-[11px] font-bold text-gray-400 tracking-wider">MODAL SEMASA</p>
+                        <p class="text-xl font-extrabold mt-2 text-gray-800 dark:text-gray-100" x-text="formatMYR(currentCapitalMYR)"></p>
+                        <p class="text-[10px] text-gray-400 mt-1">Modal Awal + Realized P/L</p>
+                    </div>
+
+                    <div class="neu-flat p-5">
+                        <p class="text-[11px] font-bold text-gray-400 tracking-wider">JUMLAH REALIZED P/L</p>
+                        <div class="mt-2 flex items-baseline space-x-2">
+                            <span class="text-lg font-black" :class="totalPLMYR >= 0 ? 'text-emerald-500' : 'text-rose-500'" x-text="(totalPLMYR >= 0 ? '+' : '') + formatMYR(totalPLMYR)"></span>
+                        </div>
+                        <p class="text-[10px] text-gray-400 mt-1">Bursa Malaysia (MYR)</p>
+                    </div>
+
+                    <div class="neu-flat p-5">
+                        <p class="text-[11px] font-bold text-gray-400 tracking-wider">KADAR KEMENANGAN</p>
+                        <p class="text-xl font-extrabold mt-2 text-blue-600 dark:text-blue-400" x-text="winRate + '%'"></p>
+                        <p class="text-[10px] text-gray-400 mt-1">Berdasarkan trade ditutup</p>
+                    </div>
+
+                    <div class="neu-flat p-5">
+                        <p class="text-[11px] font-bold text-gray-400 tracking-wider">JUMLAH TRADE</p>
+                        <p class="text-xl font-extrabold mt-2 text-gray-800 dark:text-gray-100" x-text="trades.length"></p>
+                        <p class="text-[10px] text-gray-400 mt-1"><span x-text="closedTradesCount"></span> Ditutup | <span x-text="openTradesCount"></span> Dibuka</p>
+                    </div>
+                </div>
+
+                <!-- PRESTASI PASARAN (BURSA VS US) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="neu-flat p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-black text-xs uppercase tracking-wider text-gray-600 dark:text-gray-300">🇲🇾 Bursa Malaysia</h3>
+                            <span class="text-[10px] neu-inset px-3 py-1 font-bold text-blue-600 dark:text-blue-400">MYR</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-center pt-3 neu-inset p-3">
+                            <div>
+                                <p class="text-[10px] text-gray-400 font-semibold">Trade Ditutup</p>
+                                <p class="text-sm font-bold mt-1" x-text="bursaStats.closedCount"></p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-gray-400 font-semibold">Win Rate</p>
+                                <p class="text-sm font-bold mt-1 text-blue-600 dark:text-blue-400" x-text="bursaStats.winRate + '%'"></p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-gray-400 font-semibold">Net P/L</p>
+                                <p class="text-sm font-bold mt-1" :class="bursaStats.netPL >= 0 ? 'text-emerald-500' : 'text-rose-500'" x-text="(bursaStats.netPL >= 0 ? '+' : '') + formatMYR(bursaStats.netPL)"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="neu-flat p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-black text-xs uppercase tracking-wider text-gray-600 dark:text-gray-300">🇺🇸 US Stocks</h3>
+                            <span class="text-[10px] neu-inset px-3 py-1 font-bold text-emerald-600 dark:text-emerald-400">USD</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-center pt-3 neu-inset p-3">
+                            <div>
+                                <p class="text-[10px] text-gray-400 font-semibold">Trade Ditutup</p>
+                                <p class="text-sm font-bold mt-1" x-text="usStats.closedCount"></p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-gray-400 font-semibold">Win Rate</p>
+                                <p class="text-sm font-bold mt-1 text-blue-600 dark:text-blue-400" x-text="usStats.winRate + '%'"></p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-gray-400 font-semibold">Net P/L</p>
+                                <p class="text-sm font-bold mt-1" :class="usStats.netPL >= 0 ? 'text-emerald-500' : 'text-rose-500'" x-text="(usStats.netPL >= 0 ? '+' : '') + formatUSD(usStats.netPL)"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CARTA & KAD PERATURAN -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="neu-flat p-6 lg:col-span-3">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-sm text-gray-800 dark:text-gray-200">P/L Bulanan (Bursa MYR)</h3>
+                            <span class="text-xs text-gray-400 font-medium" x-text="dashboardFilterText"></span>
+                        </div>
+                        <div class="h-64 relative p-2 neu-inset">
+                            <canvas id="monthlyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="neu-flat p-6">
+                        <h3 class="font-bold text-sm mb-4 text-gray-800 dark:text-gray-200">Pecahan Keputusan Trade (Ditutup)</h3>
+                        <div class="h-48 relative flex justify-center neu-inset p-2">
+                            <canvas id="resultDonutChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="neu-flat p-6 flex flex-col justify-center">
+                        <h3 class="font-bold text-sm mb-3 text-blue-600 dark:text-blue-400">Nota Ringkas Disiplin</h3>
+                        <div class="neu-inset p-4">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
+                                Pastikan setiap kemasukan (entry) mematuhi kriteria R:R minimum 1:1.5 dan risiko modal tidak melebihi 2%. Konsistensi proses lebih penting daripada keuntungan jangka pendek.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ================= PAGE 2: JOURNAL ================= -->
+            <div x-show="activeTab === 'journal'" class="space-y-6" x-cloak>
+                
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-2">
+                    <div>
+                        <h2 class="text-2xl font-black tracking-tight text-gray-800 dark:text-gray-100">Trading Journal</h2>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Senarai rekod dagangan Bursa Malaysia dan US Stocks.</p>
+                    </div>
+                    <button @click="openAddModal()" class="neu-btn-primary font-bold px-5 py-3 text-xs transition-all flex items-center justify-center space-x-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        <span>Tambah Trade</span>
+                    </button>
+                </div>
+
+                <!-- PENAPIS JOURNAL -->
+                <div class="neu-flat p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+                    <div class="flex flex-wrap gap-2.5 w-full md:w-auto">
+                        <button @click="journalFilterStatus = 'all'" :class="journalFilterStatus === 'all' ? 'neu-btn-active text-blue-600 dark:text-blue-400 font-extrabold' : 'text-gray-600 dark:text-gray-400 font-medium'" class="neu-btn px-4 py-2 text-xs transition-colors">Semua</button>
+                        <button @click="journalFilterStatus = 'OPEN'" :class="journalFilterStatus === 'OPEN' ? 'neu-btn-active text-blue-600 dark:text-blue-400 font-extrabold' : 'text-gray-600 dark:text-gray-400 font-medium'" class="neu-btn px-4 py-2 text-xs transition-colors">Open</button>
+                        <button @click="journalFilterStatus = 'CLOSED'" :class="journalFilterStatus === 'CLOSED' ? 'neu-btn-active text-blue-600 dark:text-blue-400 font-extrabold' : 'text-gray-600 dark:text-gray-400 font-medium'" class="neu-btn px-4 py-2 text-xs transition-colors">Closed</button>
+                        <button @click="journalFilterStatus = 'Bursa Malaysia'" :class="journalFilterStatus === 'Bursa Malaysia' ? 'neu-btn-active text-blue-600 dark:text-blue-400 font-extrabold' : 'text-gray-600 dark:text-gray-400 font-medium'" class="neu-btn px-4 py-2 text-xs transition-colors">Bursa</button>
+                        <button @click="journalFilterStatus = 'US Stocks'" :class="journalFilterStatus === 'US Stocks' ? 'neu-btn-active text-blue-600 dark:text-blue-400 font-extrabold' : 'text-gray-600 dark:text-gray-400 font-medium'" class="neu-btn px-4 py-2 text-xs transition-colors">US</button>
+                    </div>
+                    <div class="w-full md:w-64">
+                        <input type="text" x-model="searchQuery" placeholder="Cari nama saham / kod..." class="w-full neu-inset px-4 py-2 text-xs text-gray-700 dark:text-gray-200 focus:outline-none border-none">
+                    </div>
+                </div>
+
+                <!-- JADUAL TRADING -->
+                <div class="neu-flat p-4 overflow-hidden">
+                    <div class="overflow-x-auto neu-inset p-2">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="text-gray-400 border-b border-gray-300 dark:border-slate-700/60">
+                                    <th class="p-3 font-bold">Status</th>
+                                    <th class="p-3 font-bold">Pasaran</th>
+                                    <th class="p-3 font-bold">Saham / Kod</th>
+                                    <th class="p-3 font-bold">Beli (Tarikh / Harga)</th>
+                                    <th class="p-3 font-bold">Units</th>
+                                    <th class="p-3 font-bold">Setup</th>
+                                    <th class="p-3 font-bold">TP / SL / R:R</th>
+                                    <th class="p-3 font-bold">Jual (Harga / P/L)</th>
+                                    <th class="p-3 font-bold text-right">Tindakan</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-300/40 dark:divide-slate-700/40">
+                                <template x-for="t in filteredTrades" :key="t.tradeId">
+                                    <tr class="hover:bg-gray-200/40 dark:hover:bg-slate-800/40 transition-colors">
+                                        <td class="p-3 whitespace-nowrap">
+                                            <span x-show="t.status === 'OPEN'" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100/80 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300 neu-flat">🟡 OPEN</span>
+                                            <span x-show="t.status === 'CLOSED'" class="px-2.5 py-1 rounded-full text-[10px] font-bold text-gray-500 neu-inset">CLOSED</span>
+                                        </td>
+                                        <td class="p-3 whitespace-nowrap font-medium" x-text="t.market"></td>
+                                        <td class="p-3 whitespace-nowrap">
+                                            <div class="font-extrabold text-gray-800 dark:text-gray-100" x-text="t.stockName"></div>
+                                            <div class="text-[10px] text-gray-400 font-mono" x-text="t.stockCode"></div>
+                                        </td>
+                                        <td class="p-3 whitespace-nowrap">
+                                            <div x-text="t.buyDate"></div>
+                                            <div class="font-semibold text-blue-600 dark:text-blue-400" x-text="formatCurrencySymbol(t.currency) + ' ' + t.buyPrice"></div>
+                                        </td>
+                                        <td class="p-3 whitespace-nowrap font-medium" x-text="t.units"></td>
+                                        <td class="p-3 whitespace-nowrap text-gray-500 dark:text-gray-400" x-text="t.setup"></td>
+                                        <td class="p-3 whitespace-nowrap">
+                                            <div>TP: <span class="font-semibold" x-text="t.targetPrice"></span></div>
+                                            <div>SL: <span class="font-semibold" x-text="t.stopLoss"></span></div>
+                                            <div class="text-[10px] text-blue-600 dark:text-blue-400 font-bold" x-text="'R:R 1:' + t.riskReward"></div>
+                                        </td>
+                                        <td class="p-3 whitespace-nowrap">
+                                            <template x-if="t.status === 'CLOSED'">
+                                                <div>
+                                                    <div x-text="t.sellPrice"></div>
+                                                    <div class="font-extrabold" :class="t.netPL >= 0 ? 'text-emerald-500' : 'text-rose-500'" x-text="(t.netPL >= 0 ? '+' : '') + formatCurrencySymbol(t.currency) + ' ' + t.netPL"></div>
+                                                </div>
+                                            </template>
+                                            <template x-if="t.status === 'OPEN'">
+                                                <span class="text-gray-400">-</span>
+                                            </template>
+                                        </td>
+                                        <td class="p-3 whitespace-nowrap text-right space-x-1">
+                                            <template x-if="t.status === 'OPEN'">
+                                                <button @click="openCloseModal(t)" class="neu-btn px-3 py-1.5 text-amber-600 dark:text-amber-400 font-bold text-[11px] transition-colors">Tutup Trade</button>
+                                            </template>
+                                            <button @click="openDeleteModal(t.tradeId)" class="neu-btn px-3 py-1.5 text-rose-500 font-bold text-[11px]">Padam</button>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <template x-if="filteredTrades.length === 0">
+                                    <tr>
+                                        <td colspan="9" class="p-8 text-center text-gray-400 font-medium">Tiada rekod trade ditemui.</td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ================= PAGE 3: MONEY MANAGEMENT ================= -->
+            <div x-show="activeTab === 'money'" class="space-y-6" x-cloak>
+                
+                <div class="px-2">
+                    <h2 class="text-2xl font-black tracking-tight text-gray-800 dark:text-gray-100">Money Management</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Semak potensi trade sebelum masuk pasaran mengikut aturan risiko anda.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Borang Kalkulator -->
+                    <div class="neu-flat p-6 space-y-4">
+                        <h3 class="font-bold text-sm text-blue-600 dark:text-blue-400">Input Kalkulator Potensi</h3>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1.5">Pasaran</label>
+                                <select x-model="calcMarket" class="w-full neu-inset p-3 text-xs text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                                    <option value="Bursa Malaysia">Bursa Malaysia (MYR)</option>
+                                    <option value="US Stocks">US Stocks (USD)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1.5">Harga Beli</label>
+                                <input type="number" step="0.01" x-model.number="calcPrice" class="w-full neu-inset p-3 text-xs text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1.5">Jumlah Unit</label>
+                                <input type="number" x-model.number="calcUnits" class="w-full neu-inset p-3 text-xs text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1.5">Stop Loss (SL)</label>
+                                <input type="number" step="0.01" x-model.number="calcSL" class="w-full neu-inset p-3 text-xs text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1.5">Target TP1</label>
+                                <input type="number" step="0.01" x-model.number="calcTP1" class="w-full neu-inset p-3 text-xs text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1.5">Target TP2</label>
+                                <input type="number" step="0.01" x-model.number="calcTP2" class="w-full neu-inset p-3 text-xs text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1.5">Target TP3</label>
+                                <input type="number" step="0.01" x-model.number="calcTP3" class="w-full neu-inset p-3 text-xs text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Keputusan Kalkulator & Trade Check -->
+                    <div class="neu-flat p-6 space-y-4 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-bold text-sm mb-4 text-gray-800 dark:text-gray-200">Analisis Risiko & Potensi</h3>
+                            
+                            <div class="grid grid-cols-2 gap-3 mb-4 text-xs">
+                                <div class="neu-inset p-3.5">
+                                    <p class="text-gray-400 text-[10px] font-bold">Position Value</p>
+                                    <p class="text-sm font-black mt-1" x-text="calcCurrencySymbol + ' ' + calcPositionValue.toFixed(2)"></p>
+                                </div>
+                                <div class="neu-inset p-3.5">
+                                    <p class="text-gray-400 text-[10px] font-bold">% Modal Awal</p>
+                                    <p class="text-sm font-black mt-1" x-text="calcPositionPercent.toFixed(1) + '%'"></p>
+                                </div>
+                                <div class="neu-inset p-3.5">
+                                    <p class="text-gray-400 text-[10px] font-bold">Potensi Rugi</p>
+                                    <p class="text-sm font-black mt-1 text-rose-500" x-text="calcCurrencySymbol + ' ' + calcPotentialLoss.toFixed(2)"></p>
+                                </div>
+                                <div class="neu-inset p-3.5">
+                                    <p class="text-gray-400 text-[10px] font-bold">% Risiko Modal</p>
+                                    <p class="text-sm font-black mt-1" x-text="calcRiskPercent.toFixed(2) + '%'"></p>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2.5 text-xs mb-4 neu-inset p-3.5">
+                                <div class="flex justify-between py-1 border-b border-gray-300/40 dark:border-slate-700/40">
+                                    <span class="text-gray-500 dark:text-gray-400">TP1 Profit / R:R:</span>
+                                    <span class="font-bold"><span class="text-emerald-500" x-text="'+' + calcCurrencySymbol + ' ' + calcTP1Profit.toFixed(2)"></span> (1:<span x-text="calcTP1RR.toFixed(2)"></span>)</span>
+                                </div>
+                                <div class="flex justify-between py-1 border-b border-gray-300/40 dark:border-slate-700/40">
+                                    <span class="text-gray-500 dark:text-gray-400">TP2 Profit / R:R:</span>
+                                    <span class="font-bold"><span class="text-emerald-500" x-text="'+' + calcCurrencySymbol + ' ' + calcTP2Profit.toFixed(2)"></span> (1:<span x-text="calcTP2RR.toFixed(2)"></span>)</span>
+                                </div>
+                                <div class="flex justify-between py-1">
+                                    <span class="text-gray-500 dark:text-gray-400">TP3 Profit / R:R:</span>
+                                    <span class="font-bold"><span class="text-emerald-500" x-text="'+' + calcCurrencySymbol + ' ' + calcTP3Profit.toFixed(2)"></span> (1:<span x-text="calcTP3RR.toFixed(2)"></span>)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TRADE CHECK BADGES -->
+                        <div class="neu-inset p-4">
+                            <p class="text-[10px] font-extrabold mb-2.5 uppercase tracking-wider text-gray-400">TRADE CHECK SEMAKAN ATURAN</p>
+                            <div class="grid grid-cols-2 gap-2 text-xs font-semibold">
+                                <div class="flex items-center space-x-2">
+                                    <span x-text="calcCheckRR ? '🟢' : '🔴'"></span>
+                                    <span>R:R (Min 1:1.5)</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span x-text="calcCheckRisk ? '🟢' : '🔴'"></span>
+                                    <span>Risiko (Max 2%)</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span x-text="calcCheckLossShare ? '🟢' : '🔴'"></span>
+                                    <span>Rugi/Share (&lt;10%)</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span x-text="calcCheckPosition ? '🟢' : '🔴'"></span>
+                                    <span>Saiz Posisi (&lt;40%)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ================= PAGE 4: SETTINGS ================= -->
+            <div x-show="activeTab === 'settings'" class="space-y-6" x-cloak>
+                
+                <div class="px-2">
+                    <h2 class="text-2xl font-black tracking-tight text-gray-800 dark:text-gray-100">Tetapan Aplikasi</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Ubah tetapan modal, parameter risiko, dan konfigurasi yuran Moomoo.</p>
+                </div>
+
+                <div class="neu-flat p-6 max-w-2xl space-y-6">
+                    <div>
+                        <h3 class="font-bold text-sm mb-3 text-blue-600 dark:text-blue-400">Modal Perdagangan</h3>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1.5">Modal Awal (RM)</label>
+                            <input type="number" x-model.number="settings.initialCapital" class="w-full neu-inset p-3 text-sm text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-gray-300/40 dark:border-slate-700/40">
+                        <h3 class="font-bold text-sm mb-3 text-blue-600 dark:text-blue-400">Parameter Risiko & Peraturan</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1.5">Minimum R:R</label>
+                                <input type="number" step="0.1" x-model.number="settings.minRR" class="w-full neu-inset p-3 text-sm text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1.5">Maximum Rugi Per Share (%)</label>
+                                <input type="number" x-model.number="settings.maxLossShare" class="w-full neu-inset p-3 text-sm text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1.5">Maximum Risiko Per Trade (%)</label>
+                                <input type="number" step="0.1" x-model.number="settings.maxRiskTrade" class="w-full neu-inset p-3 text-sm text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1.5">Maximum Saiz Posisi (%)</label>
+                                <input type="number" x-model.number="settings.maxPositionSize" class="w-full neu-inset p-3 text-sm text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-gray-300/40 dark:border-slate-700/40">
+                        <h3 class="font-bold text-sm mb-2 text-blue-600 dark:text-blue-400">Google Apps Script Backend URL</h3>
+                        <p class="text-[11px] text-gray-400 mb-2">Masukkan URL Web App daripada Google Apps Script untuk penyelarasan Google Sheets live.</p>
+                        <input type="url" x-model="gasWebAppUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full neu-inset p-3 text-xs text-gray-700 dark:text-gray-200 border-none focus:outline-none font-mono">
+                    </div>
+
+                    <div class="pt-4 flex justify-end">
+                        <button @click="saveSettings()" :disabled="isSubmitting" class="neu-btn-primary font-bold px-6 py-3 text-xs transition-colors flex items-center space-x-2">
+                            <span x-show="isSubmitting" class="animate-spin text-xs">⏳</span>
+                            <span>Simpan Tetapan</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ================= MODAL: TAMBAH TRADE ================= -->
+    <div x-show="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto" x-cloak>
+        <div class="neu-flat max-w-lg w-full p-6 space-y-4 my-8">
+            <div class="flex justify-between items-center pb-3 border-b border-gray-300/40 dark:border-slate-700/40">
+                <div>
+                    <h3 class="font-extrabold text-base text-gray-800 dark:text-gray-100">Tambah Trade Baru</h3>
+                    <p class="text-[10px] text-blue-600 dark:text-blue-400 font-mono font-bold mt-0.5" x-text="'ID Trade: ' + nextTradeId"></p>
+                </div>
+                <button @click="showAddModal = false" class="neu-btn px-2.5 py-1 text-xs text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-gray-500 mb-1">Pasaran</label>
+                        <select x-model="newTrade.market" @change="updateNewTradeCurrency()" class="w-full neu-inset p-2.5 text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                            <option value="Bursa Malaysia">Bursa Malaysia</option>
+                            <option value="US Stocks">US Stocks</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-500 mb-1">Mata Wang</label>
+                        <input type="text" x-model="newTrade.currency" disabled class="w-full neu-inset p-2.5 text-gray-700 dark:text-gray-200 border-none font-bold">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-gray-500 mb-1">Nama Saham</label>
+                        <input type="text" x-model="newTrade.stockName" placeholder="Contoh: Gamuda Berhad" class="w-full neu-inset p-2.5 text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-500 mb-1">Kod Saham</label>
+                        <input type="text" x-model="newTrade.stockCode" placeholder="Contoh: GAMUDA" class="w-full neu-inset p-2.5 text-gray-700 dark:text-gray-200 border-none focus:outline-none uppercase">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2.5">
+                    <div>
+                        <label class="block font-bold text-gray-500 mb-1">Tarikh Beli</label>
+                        <input type="date" x-model="newTrade.buyDate" class="w-full neu-inset p-2.5 text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-500 mb-1">Harga Beli</label>
+                        <input type="number" step="0.01" x-model.number="newTrade.buyPrice" class="w-full neu-inset p-2.5 text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-500 mb-1">Units</label>
+                        <input type="number" x-model.number="newTrade.units" class="w-full neu-inset p-2.5 text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2.5">
+                    <div>
+                        <label class="block font-bold text-gray-500 mb-1">Target Price (TP)</label>
+                        <input type="number" step="0.01" x-model.number="newTrade.targetPrice" class="w-full neu-inset p-2.5 text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-500 mb-1">Stop Loss (SL)</label>
+                        <input type="number" step="0.01" x-model.number="newTrade.stopLoss" class="w-full neu-inset p-2.5 text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-500 mb-1">Setup Entry</label>
+                        <select x-model="newTrade.setup" class="w-full neu-inset p-2.5 text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                            <option value="EMA20/50 Retracement">EMA20/50 Retracement</option>
+                            <option value="Breakout">Breakout</option>
+                            <option value="Breakout + Retracement">Breakout + Retracement</option>
+                            <option value="Golden Cross">Golden Cross</option>
+                            <option value="MACD Reversal">MACD Reversal</option>
+                            <option value="Double Bottom">Double Bottom</option>
+                            <option value="Support / Resistance">Support / Resistance</option>
+                            <option value="Volume Breakout">Volume Breakout</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-500 mb-1">Nota Trade</label>
+                    <textarea x-model="newTrade.notes" rows="2" class="w-full neu-inset p-2.5 text-gray-700 dark:text-gray-200 border-none focus:outline-none" placeholder="Catatan analisis teknikal..."></textarea>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-3 border-t border-gray-300/40 dark:border-slate-700/40">
+                <button @click="showAddModal = false" class="neu-btn px-4 py-2 text-xs font-bold text-gray-500">Batal</button>
+                <button @click="saveNewTrade()" :disabled="isSubmitting" class="neu-btn-primary px-5 py-2 text-xs font-extrabold flex items-center space-x-2">
+                    <span x-show="isSubmitting" class="animate-spin text-xs">⏳</span>
+                    <span>Simpan Trade</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: TUTUP TRADE ================= -->
+    <div x-show="showCloseModalFlag" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto" x-cloak>
+        <div class="neu-flat max-w-md w-full p-6 space-y-4">
+            <div class="flex justify-between items-center pb-3 border-b border-gray-300/40 dark:border-slate-700/40">
+                <h3 class="font-extrabold text-base text-gray-800 dark:text-gray-100">Tutup Trade: <span x-text="closingTrade?.stockName" class="text-blue-600 dark:text-blue-400"></span></h3>
+                <button @click="showCloseModalFlag = false" class="neu-btn px-2.5 py-1 text-xs text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-gray-500 mb-1">Tarikh Jual</label>
+                        <input type="date" x-model="closeForm.sellDate" class="w-full neu-inset p-2.5 text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-500 mb-1">Harga Jual</label>
+                        <input type="number" step="0.01" x-model.number="closeForm.sellPrice" class="w-full neu-inset p-2.5 text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-500 mb-1">Sebab Keluar (Reason Exit)</label>
+                    <select x-model="closeForm.reasonExit" class="w-full neu-inset p-2.5 text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                        <option value="Target Price Hit">Target Price Hit</option>
+                        <option value="Stop Loss Hit">Stop Loss Hit</option>
+                        <option value="Partial Profit">Partial Profit</option>
+                        <option value="Trailing Stop">Trailing Stop</option>
+                        <option value="Trading Plan Changed">Trading Plan Changed</option>
+                        <option value="Market Condition">Market Condition</option>
+                        <option value="Manual Exit">Manual Exit</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-gray-500 mb-1">Ikut Pelan?</label>
+                        <select x-model="closeForm.followPlan" class="w-full neu-inset p-2.5 text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                            <option value="Partially">Partially</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-500 mb-1">Kesilapan (Mistake)</label>
+                        <select x-model="closeForm.mistake" class="w-full neu-inset p-2.5 text-gray-700 dark:text-gray-200 border-none focus:outline-none">
+                            <option value="None">None</option>
+                            <option value="FOMO">FOMO</option>
+                            <option value="Chased Price">Chased Price</option>
+                            <option value="Did Not Follow Stop Loss">Did Not Follow Stop Loss</option>
+                            <option value="Averaged Down">Averaged Down</option>
+                            <option value="Entered Without Setup">Entered Without Setup</option>
+                            <option value="Position Too Large">Position Too Large</option>
+                            <option value="Risk Too High">Risk Too High</option>
+                            <option value="Poor Entry">Poor Entry</option>
+                            <option value="Exited Too Early">Exited Too Early</option>
+                            <option value="Held Too Long">Held Too Long</option>
+                            <option value="Emotional Decision">Emotional Decision</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-500 mb-1">Nota Penutupan</label>
+                    <textarea x-model="closeForm.exitNotes" rows="2" class="w-full neu-inset p-2.5 text-gray-700 dark:text-gray-200 border-none focus:outline-none" placeholder="Pengajaran trade ini..."></textarea>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-3 border-t border-gray-300/40 dark:border-slate-700/40">
+                <button @click="showCloseModalFlag = false" class="neu-btn px-4 py-2 text-xs font-bold text-gray-500">Batal</button>
+                <button @click="confirmCloseTrade()" :disabled="isSubmitting" class="neu-btn px-5 py-2 text-xs font-extrabold text-amber-600 dark:text-amber-400 flex items-center space-x-2">
+                    <span x-show="isSubmitting" class="animate-spin text-xs">⏳</span>
+                    <span>Sahkan Tutup</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: PENGESAHAN PADAM TRADE (NEW) ================= -->
+    <div x-show="showDeleteModalFlag" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto" x-cloak>
+        <div class="neu-flat max-w-sm w-full p-6 space-y-4 text-center">
+            <div class="w-12 h-12 neu-inset flex items-center justify-center mx-auto text-rose-500 text-xl font-bold rounded-full">
+                🗑️
+            </div>
+            <div>
+                <h3 class="font-extrabold text-base text-gray-800 dark:text-gray-100">Padam Rekod Trade?</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Adakah anda pasti mahu memadam rekod trade ini? Tindakan ini tidak boleh dibatalkan.</p>
+            </div>
+            <div class="flex justify-center space-x-3 pt-3 border-t border-gray-300/40 dark:border-slate-700/40">
+                <button @click="showDeleteModalFlag = false; deletingTradeId = null;" class="neu-btn px-4 py-2 text-xs font-bold text-gray-500">Batal</button>
+                <button @click="confirmDeleteTrade()" :disabled="isSubmitting" class="neu-btn px-5 py-2 text-xs font-extrabold text-rose-600 dark:text-rose-400 flex items-center space-x-2">
+                    <span x-show="isSubmitting" class="animate-spin text-xs">⏳</span>
+                    <span>Ya, Padam</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT UTAMA APLIKASI -->
+    <script>
+        function stockJournalApp() {
+            return {
+                activeTab: 'dashboard',
+                darkMode: false,
+                isSubmitting: false,
+                isLoading: false,
+                gasWebAppUrl: '',
+                
+                toast: {
+                    show: false,
+                    message: '',
+                    type: 'info'
+                },
+
+                // State penapis masa berasingan
+                selectedMonth: 'all',
+                selectedYear: 'all',
+                yearOptions: Array.from({length: 36}, (_, i) => 2025 + i),
+                
+                journalFilterStatus: 'all',
+                searchQuery: '',
+                
+                // Tetapan
+                settings: {
+                    initialCapital: 10000,
+                    minRR: 1.5,
+                    maxLossShare: 10,
+                    maxRiskTrade: 2,
+                    maxPositionSize: 40,
+                    bursaBuyFee: 4,
+                    bursaSellFee: 4,
+                    usBuyFee: 1.20,
+                    usSellFee: 1.20
+                },
+
+                // Rekod Contoh Awalan untuk Ujian
+                trades: [
+                    {
+                        tradeId: 'TRD-20250301-001',
+                        status: 'CLOSED',
+                        market: 'Bursa Malaysia',
+                        currency: 'MYR',
+                        stockName: 'Gamuda Berhad',
+                        stockCode: 'GAMUDA',
+                        buyDate: '2025-03-01',
+                        buyPrice: 4.20,
+                        units: 1000,
+                        setup: 'Breakout',
+                        targetPrice: 4.80,
+                        stopLoss: 3.90,
+                        riskReward: 2.00,
+                        sellDate: '2025-03-10',
+                        sellPrice: 4.75,
+                        grossPL: 550.00,
+                        totalFees: 8.00,
+                        netPL: 542.00,
+                        plPercent: 12.90,
+                        holdingPeriod: 9,
+                        reasonExit: 'Target Price Hit',
+                        followPlan: 'Yes',
+                        mistake: 'None',
+                        notes: 'Breakout ATH volume tinggi',
+                        exitNotes: 'Disiplin capai TP'
+                    },
+                    {
+                        tradeId: 'TRD-20250305-002',
+                        status: 'OPEN',
+                        market: 'US Stocks',
+                        currency: 'USD',
+                        stockName: 'NVIDIA Corp',
+                        stockCode: 'NVDA',
+                        buyDate: '2025-03-05',
+                        buyPrice: 120.00,
+                        units: 10,
+                        setup: 'EMA20/50 Retracement',
+                        targetPrice: 140.00,
+                        stopLoss: 110.00,
+                        riskReward: 2.00,
+                        sellDate: '',
+                        sellPrice: 0,
+                        grossPL: 0,
+                        totalFees: 0,
+                        netPL: 0,
+                        plPercent: 0,
+                        notes: 'Retracement pada EMA20'
+                    }
+                ],
+
+                setups: ['EMA20/50 Retracement', 'Breakout', 'Breakout + Retracement', 'Golden Cross', 'MACD Reversal', 'Double Bottom', 'Support / Resistance', 'Volume Breakout', 'Other'],
+                exitReasons: ['Target Price Hit', 'Stop Loss Hit', 'Partial Profit', 'Trailing Stop', 'Trading Plan Changed', 'Market Condition', 'Manual Exit', 'Other'],
+                mistakes: ['None', 'FOMO', 'Chased Price', 'Did Not Follow Stop Loss', 'Averaged Down', 'Entered Without Setup', 'Position Too Large', 'Risk Too High', 'Poor Entry', 'Exited Too Early', 'Held Too Long', 'Emotional Decision', 'Other'],
+
+                nextTradeId: '',
+                showAddModal: false,
+                showCloseModalFlag: false,
+                showDeleteModalFlag: false,
+                deletingTradeId: null,
+
+                closingTrade: null,
+                closeForm: {
+                    sellDate: '',
+                    sellPrice: 0,
+                    reasonExit: 'Target Price Hit',
+                    followPlan: 'Yes',
+                    mistake: 'None',
+                    exitNotes: ''
+                },
+
+                newTrade: {
+                    market: 'Bursa Malaysia',
+                    currency: 'MYR',
+                    stockName: '',
+                    stockCode: '',
+                    buyDate: '',
+                    buyPrice: 1.00,
+                    units: 1000,
+                    setup: 'EMA20/50 Retracement',
+                    targetPrice: 1.20,
+                    stopLoss: 0.90,
+                    notes: ''
+                },
+
+                calcMarket: 'Bursa Malaysia',
+                calcPrice: 1.00,
+                calcUnits: 1000,
+                calcSL: 0.90,
+                calcTP1: 1.15,
+                calcTP2: 1.30,
+                calcTP3: 1.50,
+
+                toggleTheme() {
+                    this.darkMode = !this.darkMode;
+                    if (this.darkMode) {
+                        document.documentElement.classList.add('dark');
+                        localStorage.setItem('stock_journal_theme', 'dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                        localStorage.setItem('stock_journal_theme', 'light');
+                    }
+                    this.renderCharts();
+                },
+
+                formatMYR(val) { return 'RM ' + (Number(val) || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
+                formatUSD(val) { return 'USD ' + (Number(val) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
+                formatCurrencySymbol(curr) { return curr === 'USD' ? 'USD' : 'RM'; },
+
+                showToast(message, type = 'info', duration = 3000) {
+                    this.toast.message = message;
+                    this.toast.type = type;
+                    this.toast.show = true;
+                    if (duration > 0) {
+                        setTimeout(() => {
+                            if (this.toast.message === message) this.toast.show = false;
+                        }, duration);
+                    }
+                },
+
+                async apiCall(action, payload = {}) {
+                    if (typeof google !== 'undefined' && google.script && google.script.run) {
+                        return new Promise((resolve, reject) => {
+                            google.script.run
+                                .withSuccessHandler(res => resolve(res))
+                                .withFailureHandler(err => reject(err))[action](payload);
+                        });
+                    }
+
+                    if (this.gasWebAppUrl && this.gasWebAppUrl.trim() !== '') {
+                        try {
+                            const response = await fetch(this.gasWebAppUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                                body: JSON.stringify({ action: action, payload: payload })
+                            });
+                            const json = await response.json();
+                            if (json.status === 'error') throw new Error(json.message);
+                            return json;
+                        } catch (err) {
+                            console.error('API Call Error:', err);
+                            throw err;
+                        }
+                    }
+
+                    return this.localFallbackApi(action, payload);
+                },
+
+                localFallbackApi(action, payload) {
+                    if (action === 'getDashboardData' || action === 'getTrades') {
+                        return { status: 'success', data: { trades: this.trades, settings: this.settings } };
+                    }
+                    if (action === 'saveSettings') {
+                        this.settings = { ...this.settings, ...payload };
+                        return { status: 'success', message: 'Tetapan berjaya disimpan.' };
+                    }
+                    if (action === 'createTrade') {
+                        this.trades.unshift(payload);
+                        return { status: 'success', message: 'Trade berjaya disimpan.', tradeId: payload.tradeId };
+                    }
+                    if (action === 'updateTrade' || action === 'closeTrade') {
+                        const idx = this.trades.findIndex(t => t.tradeId === payload.tradeId);
+                        if (idx !== -1) this.trades[idx] = { ...this.trades[idx], ...payload };
+                        return { status: 'success', message: 'Trade berjaya ditutup.' };
+                    }
+                    if (action === 'deleteTrade') {
+                        const targetId = (typeof payload === 'object' && payload !== null && payload.tradeId) ? payload.tradeId : payload;
+                        this.trades = this.trades.filter(t => t.tradeId !== targetId);
+                        return { status: 'success', message: 'Trade berjaya dipadam.' };
+                    }
+                    return { status: 'success', data: [] };
+                },
+
+                get filteredTrades() {
+                    return this.trades.filter(t => {
+                        const matchStatus = this.journalFilterStatus === 'all' || 
+                                           t.status === this.journalFilterStatus || 
+                                           t.market === this.journalFilterStatus;
+                        const matchSearch = !this.searchQuery || 
+                                            t.stockName.toLowerCase().includes(this.searchQuery.toLowerCase()) || 
+                                            t.stockCode.toLowerCase().includes(this.searchQuery.toLowerCase());
+                        return matchStatus && matchSearch;
+                    });
+                },
+
+                getFilteredTradesForDashboard() {
+                    return this.trades.filter(t => {
+                        const dateStr = t.sellDate || t.buyDate;
+                        if (!dateStr) return true;
+                        const d = new Date(dateStr);
+                        if (isNaN(d.getTime())) return true;
+
+                        const mStr = ('0' + (d.getMonth() + 1)).slice(-2);
+                        const yStr = d.getFullYear().toString();
+
+                        const matchMonth = this.selectedMonth === 'all' || mStr === this.selectedMonth;
+                        const matchYear = this.selectedYear === 'all' || yStr === this.selectedYear;
+
+                        return matchMonth && matchYear;
+                    });
+                },
+
+                get currentCapitalMYR() {
+                    const closedMYR = this.trades.filter(t => t.status === 'CLOSED' && t.market === 'Bursa Malaysia');
+                    const netPLSum = closedMYR.reduce((sum, t) => sum + (Number(t.netPL) || 0), 0);
+                    return (Number(this.settings.initialCapital) || 0) + netPLSum;
+                },
+
+                get totalPLMYR() {
+                    return this.trades
+                        .filter(t => t.status === 'CLOSED' && t.market === 'Bursa Malaysia')
+                        .reduce((sum, t) => sum + (Number(t.netPL) || 0), 0);
+                },
+
+                get closedTradesCount() { return this.trades.filter(t => t.status === 'CLOSED').length; },
+                get openTradesCount() { return this.trades.filter(t => t.status === 'OPEN').length; },
+                
+                get winRate() {
+                    const closed = this.trades.filter(t => t.status === 'CLOSED');
+                    if (closed.length === 0) return 0;
+                    const wins = closed.filter(t => Number(t.netPL) > 0).length;
+                    return Math.round((wins / closed.length) * 100);
+                },
+
+                get bursaStats() {
+                    const closed = this.getFilteredTradesForDashboard().filter(t => t.status === 'CLOSED' && t.market === 'Bursa Malaysia');
+                    const wins = closed.filter(t => Number(t.netPL) > 0).length;
+                    const netPL = closed.reduce((sum, t) => sum + (Number(t.netPL) || 0), 0);
+                    return {
+                        closedCount: closed.length,
+                        winRate: closed.length > 0 ? Math.round((wins / closed.length) * 100) : 0,
+                        netPL: netPL
+                    };
+                },
+
+                get usStats() {
+                    const closed = this.getFilteredTradesForDashboard().filter(t => t.status === 'CLOSED' && t.market === 'US Stocks');
+                    const wins = closed.filter(t => Number(t.netPL) > 0).length;
+                    const netPL = closed.reduce((sum, t) => sum + (Number(t.netPL) || 0), 0);
+                    return {
+                        closedCount: closed.length,
+                        winRate: closed.length > 0 ? Math.round((wins / closed.length) * 100) : 0,
+                        netPL: netPL
+                    };
+                },
+
+                get dashboardFilterText() {
+                    let text = [];
+                    if (this.selectedMonth !== 'all') text.push('Bulan ' + this.selectedMonth);
+                    if (this.selectedYear !== 'all') text.push('Tahun ' + this.selectedYear);
+                    return text.length > 0 ? text.join(' | ') : 'Semua Masa';
+                },
+
+                generateFrontendTradeId() {
+                    const now = new Date();
+                    const dateStr = now.getFullYear() + ('0' + (now.getMonth() + 1)).slice(-2) + ('0' + now.getDate()).slice(-2);
+                    const prefix = 'TRD-' + dateStr + '-';
+                    let maxSeq = 0;
+                    this.trades.forEach(t => {
+                        if (t.tradeId && t.tradeId.startsWith(prefix)) {
+                            const seq = parseInt(t.tradeId.replace(prefix, ''), 10);
+                            if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
+                        }
+                    });
+                    return prefix + ('00' + (maxSeq + 1)).slice(-3);
+                },
+
+                async initApp() {
+                    const savedTheme = localStorage.getItem('stock_journal_theme');
+                    if (savedTheme === 'dark') {
+                        this.darkMode = true;
+                        document.documentElement.classList.add('dark');
+                    }
+
+                    this.gasWebAppUrl = localStorage.getItem('stock_journal_gas_url') || '';
+                    
+                    const savedSettings = localStorage.getItem('stock_journal_settings');
+                    if (savedSettings) {
+                        try { this.settings = JSON.parse(savedSettings); } catch(e){}
+                    }
+
+                    const savedTrades = localStorage.getItem('stock_journal_trades');
+                    if (savedTrades) {
+                        try { this.trades = JSON.parse(savedTrades); } catch(e){}
+                    }
+
+                    await this.loadJournalData();
+                },
+
+                async loadJournalData() {
+                    this.showToast('Memuatkan data...', 'info', 0);
+                    try {
+                        const res = await this.apiCall('getDashboardData');
+                        if (res && res.status === 'success' && res.data) {
+                            if (res.data.trades && res.data.trades.length > 0) this.trades = res.data.trades;
+                            if (res.data.settings) this.settings = { ...this.settings, ...res.data.settings };
+                        }
+                        this.toast.show = false;
+                    } catch (err) {
+                        console.error('Failed to load from backend:', err);
+                        this.showToast('Menggunakan data storan tempatan.', 'info', 3000);
+                    } finally {
+                        setTimeout(() => this.renderCharts(), 200);
+                    }
+                },
+
+                updateDashboardFilter() {
+                    this.renderCharts();
+                },
+
+                persistData() {
+                    localStorage.setItem('stock_journal_trades', JSON.stringify(this.trades));
+                    this.renderCharts();
+                },
+
+                openAddModal() {
+                    this.nextTradeId = this.generateFrontendTradeId();
+                    this.newTrade = {
+                        market: 'Bursa Malaysia',
+                        currency: 'MYR',
+                        stockName: '',
+                        stockCode: '',
+                        buyDate: new Date().toISOString().split('T')[0],
+                        buyPrice: 1.00,
+                        units: 1000,
+                        setup: this.setups[0] || 'EMA20/50 Retracement',
+                        targetPrice: 1.20,
+                        stopLoss: 0.90,
+                        notes: ''
+                    };
+                    this.showAddModal = true;
+                },
+
+                updateNewTradeCurrency() {
+                    this.newTrade.currency = this.newTrade.market === 'US Stocks' ? 'USD' : 'MYR';
+                },
+
+                get newTradePositionValue() { return (Number(this.newTrade.buyPrice) || 0) * (Number(this.newTrade.units) || 0); },
+                get newTradePotentialLoss() { return ((Number(this.newTrade.buyPrice) || 0) - (Number(this.newTrade.stopLoss) || 0)) * (Number(this.newTrade.units) || 0); },
+                get newTradeTPPercent() { return this.newTrade.buyPrice > 0 ? (((this.newTrade.targetPrice - this.newTrade.buyPrice) / this.newTrade.buyPrice) * 100) : 0; },
+                get newTradeSLPercent() { return this.newTrade.buyPrice > 0 ? (((this.newTrade.buyPrice - this.newTrade.stopLoss) / this.newTrade.buyPrice) * 100) : 0; },
+                get newTradeRR() {
+                    const risk = this.newTrade.buyPrice - this.newTrade.stopLoss;
+                    const reward = this.newTrade.targetPrice - this.newTrade.buyPrice;
+                    return risk > 0 ? reward / risk : 0;
+                },
+
+                get newTradeCheckRR() { return this.newTradeRR >= this.settings.minRR; },
+                get newTradeCheckRisk() {
+                    if (this.settings.initialCapital <= 0) return true;
+                    return (this.newTradePotentialLoss / this.settings.initialCapital) * 100 <= this.settings.maxRiskTrade;
+                },
+                get newTradeCheckLossShare() { return this.newTradeSLPercent <= this.settings.maxLossShare; },
+                get newTradeCheckPosition() {
+                    if (this.settings.initialCapital <= 0) return true;
+                    return (this.newTradePositionValue / this.settings.initialCapital) * 100 <= this.settings.maxPositionSize;
+                },
+
+                async saveNewTrade() {
+                    if (this.isSubmitting) return;
+
+                    if (!this.newTrade.stockName || !this.newTrade.stockCode) {
+                        this.showToast('Sila masukkan Nama Saham dan Kod Saham.', 'error', 3000);
+                        return;
+                    }
+                    if (Number(this.newTrade.buyPrice) <= 0) {
+                        this.showToast('Harga Beli mestilah lebih besar daripada 0.', 'error', 3000);
+                        return;
+                    }
+                    if (Number(this.newTrade.units) <= 0) {
+                        this.showToast('Jumlah Units mestilah lebih besar daripada 0.', 'error', 3000);
+                        return;
+                    }
+
+                    this.isSubmitting = true;
+                    this.showToast('Menyimpan trade...', 'info', 0);
+
+                    const tradeObj = {
+                        tradeId: this.nextTradeId || this.generateFrontendTradeId(),
+                        status: 'OPEN',
+                        market: this.newTrade.market,
+                        currency: this.newTrade.currency,
+                        stockName: this.newTrade.stockName,
+                        stockCode: this.newTrade.stockCode.toUpperCase(),
+                        buyDate: this.newTrade.buyDate,
+                        buyPrice: Number(this.newTrade.buyPrice),
+                        units: Number(this.newTrade.units),
+                        setup: this.newTrade.setup,
+                        targetPrice: Number(this.newTrade.targetPrice),
+                        stopLoss: Number(this.newTrade.stopLoss),
+                        riskReward: Number(this.newTradeRR.toFixed(2)),
+                        sellDate: '',
+                        sellPrice: 0,
+                        grossPL: 0,
+                        fees: 0,
+                        netPL: 0,
+                        plPercent: 0,
+                        holdingPeriod: 0,
+                        reasonExit: '',
+                        followPlan: '',
+                        mistake: '',
+                        notes: this.newTrade.notes || '',
+                        exitNotes: ''
+                    };
+
+                    try {
+                        const res = await this.apiCall('createTrade', tradeObj);
+                        if (res && res.status === 'error') throw new Error(res.message);
+
+                        this.trades.unshift(tradeObj);
+                        this.persistData();
+                        this.showAddModal = false;
+                        this.showToast('✅ Trade berjaya disimpan.', 'success', 3000);
+                    } catch (err) {
+                        this.showToast('Ralat semasa menyimpan trade.', 'error', 4000);
+                    } finally {
+                        this.isSubmitting = false;
+                    }
+                },
+
+                openCloseModal(trade) {
+                    this.closingTrade = trade;
+                    this.closeForm = {
+                        sellDate: new Date().toISOString().split('T')[0],
+                        sellPrice: trade.targetPrice || trade.buyPrice,
+                        reasonExit: 'Target Price Hit',
+                        followPlan: 'Yes',
+                        mistake: 'None',
+                        exitNotes: ''
+                    };
+                    this.showCloseModalFlag = true;
+                },
+
+                async confirmCloseTrade() {
+                    if (this.isSubmitting || !this.closingTrade) return;
+
+                    if (Number(this.closeForm.sellPrice) <= 0) {
+                        this.showToast('Harga Jual mestilah lebih besar daripada 0.', 'error', 3000);
+                        return;
+                    }
+                    if (!this.closeForm.sellDate) {
+                        this.showToast('Tarikh Jual diperlukan.', 'error', 3000);
+                        return;
+                    }
+
+                    this.isSubmitting = true;
+                    this.showToast('Menutup trade...', 'info', 0);
+
+                    const payload = {
+                        tradeId: this.closingTrade.tradeId,
+                        sellDate: this.closeForm.sellDate,
+                        sellPrice: Number(this.closeForm.sellPrice),
+                        reasonExit: this.closeForm.reasonExit,
+                        followPlan: this.closeForm.followPlan,
+                        mistake: this.closeForm.mistake,
+                        exitNotes: this.closeForm.exitNotes
+                    };
+
+                    try {
+                        const res = await this.apiCall('closeTrade', payload);
+                        if (res && res.status === 'error') throw new Error(res.message);
+
+                        const t = this.trades.find(x => x.tradeId === this.closingTrade.tradeId);
+                        if (t) {
+                            t.status = 'CLOSED';
+                            t.sellDate = this.closeForm.sellDate;
+                            t.sellPrice = Number(this.closeForm.sellPrice);
+                            t.reasonExit = this.closeForm.reasonExit;
+                            t.followPlan = this.closeForm.followPlan;
+                            t.mistake = this.closeForm.mistake;
+                            t.exitNotes = this.closeForm.exitNotes;
+                            
+                            const d1 = new Date(t.buyDate);
+                            const d2 = new Date(t.sellDate);
+                            t.holdingPeriod = Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24));
+
+                            const gross = (t.sellPrice - t.buyPrice) * t.units;
+                            t.grossPL = gross;
+                            t.netPL = gross;
+                            t.plPercent = ((t.sellPrice - t.buyPrice) / t.buyPrice) * 100;
+                        }
+
+                        this.persistData();
+                        this.showCloseModalFlag = false;
+                        this.closingTrade = null;
+                        this.showToast('✅ Trade berjaya ditutup.', 'success', 3000);
+                    } catch (err) {
+                        this.showToast('Ralat semasa menutup trade.', 'error', 4000);
+                    } finally {
+                        this.isSubmitting = false;
+                    }
+                },
+
+                openDeleteModal(tradeId) {
+                    this.deletingTradeId = tradeId;
+                    this.showDeleteModalFlag = true;
+                },
+
+                async confirmDeleteTrade() {
+                    if (this.isSubmitting || !this.deletingTradeId) return;
+
+                    this.isSubmitting = true;
+                    this.showToast('Memadam trade...', 'info', 0);
+
+                    try {
+                        const res = await this.apiCall('deleteTrade', { tradeId: this.deletingTradeId });
+                        if (res && res.status === 'error') throw new Error(res.message);
+
+                        this.trades = this.trades.filter(t => t.tradeId !== this.deletingTradeId);
+                        this.persistData();
+                        this.showDeleteModalFlag = false;
+                        this.deletingTradeId = null;
+                        this.showToast('✅ Trade berjaya dipadam.', 'success', 2500);
+                    } catch (err) {
+                        this.showToast('Gagal memadam trade.', 'error', 4000);
+                    } finally {
+                        this.isSubmitting = false;
+                    }
+                },
+
+                async saveSettings() {
+                    if (this.isSubmitting) return;
+                    this.isSubmitting = true;
+                    this.showToast('Menyimpan tetapan...', 'info', 0);
+
+                    try {
+                        localStorage.setItem('stock_journal_gas_url', this.gasWebAppUrl);
+                        localStorage.setItem('stock_journal_settings', JSON.stringify(this.settings));
+                        await this.apiCall('saveSettings', this.settings);
+                        this.showToast('✅ Tetapan berjaya disimpan.', 'success', 3000);
+                    } catch (err) {
+                        this.showToast('Ralat semasa menyimpan tetapan.', 'error', 4000);
+                    } finally {
+                        this.isSubmitting = false;
+                    }
+                },
+
+                get calcCurrencySymbol() { return this.calcMarket === 'US Stocks' ? 'USD' : 'RM'; },
+                get calcPositionValue() { return (this.calcPrice || 0) * (this.calcUnits || 0); },
+                get calcPositionPercent() {
+                    if (this.settings.initialCapital <= 0) return 0;
+                    return (this.calcPositionValue / this.settings.initialCapital) * 100;
+                },
+                get calcPotentialLoss() { return ((this.calcPrice || 0) - (this.calcSL || 0)) * (this.calcUnits || 0); },
+                get calcRiskPercent() {
+                    if (this.settings.initialCapital <= 0) return 0;
+                    return (this.calcPotentialLoss / this.settings.initialCapital) * 100;
+                },
+                get calcTP1Profit() { return ((this.calcTP1 || 0) - (this.calcPrice || 0)) * (this.calcUnits || 0); },
+                get calcTP2Profit() { return ((this.calcTP2 || 0) - (this.calcPrice || 0)) * (this.calcUnits || 0); },
+                get calcTP3Profit() { return ((this.calcTP3 || 0) - (this.calcPrice || 0)) * (this.calcUnits || 0); },
+                
+                get calcTP1RR() {
+                    const risk = (this.calcPrice || 0) - (this.calcSL || 0);
+                    const reward = (this.calcTP1 || 0) - (this.calcPrice || 0);
+                    return risk > 0 ? reward / risk : 0;
+                },
+                get calcTP2RR() {
+                    const risk = (this.calcPrice || 0) - (this.calcSL || 0);
+                    const reward = (this.calcTP2 || 0) - (this.calcPrice || 0);
+                    return risk > 0 ? reward / risk : 0;
+                },
+                get calcTP3RR() {
+                    const risk = (this.calcPrice || 0) - (this.calcSL || 0);
+                    const reward = (this.calcTP3 || 0) - (this.calcPrice || 0);
+                    return risk > 0 ? reward / risk : 0;
+                },
+
+                get calcCheckRR() { return this.calcTP1RR >= this.settings.minRR; },
+                get calcCheckRisk() { return this.calcRiskPercent <= this.settings.maxRiskTrade; },
+                get calcCheckLossShare() {
+                    if (this.calcPrice <= 0) return true;
+                    const slPercent = (((this.calcPrice - this.calcSL) / this.calcPrice) * 100);
+                    return slPercent <= this.settings.maxLossShare;
+                },
+                get calcCheckPosition() { return this.calcPositionPercent <= this.settings.maxPositionSize; },
+
+                renderCharts() {
+                    const isDark = this.darkMode;
+                    const textColor = isDark ? '#e2e8f0' : '#475569';
+
+                    // Carta 1: Monthly P/L
+                    const ctxMonthly = document.getElementById('monthlyChart');
+                    if (ctxMonthly) {
+                        const filtered = this.getFilteredTradesForDashboard().filter(t => t.status === 'CLOSED' && t.market === 'Bursa Malaysia');
+                        const monthlyTotals = Array(12).fill(0);
+                        
+                        filtered.forEach(t => {
+                            const dateToUse = t.sellDate || t.buyDate;
+                            if (dateToUse) {
+                                const d = new Date(dateToUse);
+                                if (!isNaN(d.getTime())) {
+                                    const month = d.getMonth();
+                                    monthlyTotals[month] += (Number(t.netPL) || 0);
+                                }
+                            }
+                        });
+
+                        if (window.myMonthlyChart) window.myMonthlyChart.destroy();
+                        window.myMonthlyChart = new Chart(ctxMonthly, {
+                            type: 'bar',
+                            data: {
+                                labels: ['Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ogo', 'Sep', 'Okt', 'Nov', 'Dis'],
+                                datasets: [{
+                                    label: 'Net P/L (MYR)',
+                                    data: monthlyTotals,
+                                    backgroundColor: '#3b82f6',
+                                    borderRadius: 6
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    y: { 
+                                        ticks: { color: textColor },
+                                        grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' } 
+                                    },
+                                    x: { 
+                                        ticks: { color: textColor },
+                                        grid: { display: false } 
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                    // Carta 2: Donut Trade Results
+                    const ctxDonut = document.getElementById('resultDonutChart');
+                    if (ctxDonut) {
+                        const closed = this.getFilteredTradesForDashboard().filter(t => t.status === 'CLOSED');
+                        const winning = closed.filter(t => Number(t.netPL) > 0).length;
+                        const losing = closed.filter(t => Number(t.netPL) < 0).length;
+                        const breakeven = closed.filter(t => Number(t.netPL) === 0).length;
+
+                        if (window.myDonutChart) window.myDonutChart.destroy();
+                        window.myDonutChart = new Chart(ctxDonut, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['Winning', 'Losing', 'Breakeven'],
+                                datasets: [{
+                                    data: [winning, losing, breakeven],
+                                    backgroundColor: ['#10b981', '#f43f5e', '#f59e0b'],
+                                    borderWidth: 0
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { 
+                                        position: 'bottom', 
+                                        labels: { 
+                                            boxWidth: 12, 
+                                            font: { size: 11 },
+                                            color: textColor
+                                        } 
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
