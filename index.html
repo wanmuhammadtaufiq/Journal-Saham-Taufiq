@@ -644,7 +644,7 @@
 
                     <div class="pt-4 border-t border-gray-300/40 dark:border-slate-700/40">
                         <h3 class="font-bold text-sm mb-2 text-blue-600 dark:text-blue-400">Google Apps Script Backend URL</h3>
-                        <p class="text-[11px] text-gray-400 mb-2">Masukkan URL Web App daripada Google Apps Script untuk penyelarasan Google Sheets live.</p>
+                        <p class="text-[11px] text-gray-400 mb-2">URL ini diselenggara secara automatik melalui tetapan kod utama.</p>
                         <input type="url" x-model="gasWebAppUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full neu-inset p-3 text-xs text-gray-700 dark:text-gray-200 border-none focus:outline-none font-mono">
                     </div>
 
@@ -833,7 +833,7 @@
         </div>
     </div>
 
-    <!-- ================= MODAL: PENGESAHAN PADAM TRADE (NEW) ================= -->
+    <!-- ================= MODAL: PENGESAHAN PADAM TRADE ================= -->
     <div x-show="showDeleteModalFlag" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto" x-cloak>
         <div class="neu-flat max-w-sm w-full p-6 space-y-4 text-center">
             <div class="w-12 h-12 neu-inset flex items-center justify-center mx-auto text-rose-500 text-xl font-bold rounded-full">
@@ -861,8 +861,12 @@
                 darkMode: false,
                 isSubmitting: false,
                 isLoading: false,
-                gasWebAppUrl: '',
-                
+
+                // =========================================================================================
+                // ⚠️ TAMPAL GAS_URL ANDA DI BARIS KIRA-KIRA 437 DI BAWAH INI (GANTIKAN TEKS DI DALAM SYARAT)
+                // =========================================================================================
+                gasWebAppUrl: 'https://script.google.com/macros/s/AKfycbxXdT0r_Jh_HcPrVx_LN1X6FkeYQUR_iHWvPRDAUCQZxfPgJWsIBZlt91IJ5wbEqxot/exec',
+
                 toast: {
                     show: false,
                     message: '',
@@ -890,7 +894,7 @@
                     usSellFee: 1.20
                 },
 
-                // Rekod Contoh Awalan untuk Ujian
+                // Rekod Contoh Awalan
                 trades: [
                     {
                         tradeId: 'TRD-20250301-001',
@@ -1021,7 +1025,7 @@
                         });
                     }
 
-                    if (this.gasWebAppUrl && this.gasWebAppUrl.trim() !== '') {
+                    if (this.gasWebAppUrl && this.gasWebAppUrl.trim() !== '' && !this.gasWebAppUrl.includes('TAMPAL_GAS_WEB_APP_URL_ANDA_DI_SINI')) {
                         try {
                             const response = await fetch(this.gasWebAppUrl, {
                                 method: 'POST',
@@ -1166,8 +1170,11 @@
                         document.documentElement.classList.add('dark');
                     }
 
-                    this.gasWebAppUrl = localStorage.getItem('stock_journal_gas_url') || '';
-                    
+                    const savedGasUrl = localStorage.getItem('stock_journal_gas_url');
+                    if (savedGasUrl && savedGasUrl.trim() !== '') {
+                        this.gasWebAppUrl = savedGasUrl;
+                    }
+
                     const savedSettings = localStorage.getItem('stock_journal_settings');
                     if (savedSettings) {
                         try { this.settings = JSON.parse(savedSettings); } catch(e){}
